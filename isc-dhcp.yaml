@@ -47,3 +47,31 @@
         owner: root
         group: root
         mode: '0644'
+
+- name: Setup iptables rules
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Install iptables-persistent
+      apt:
+        name: iptables-persistent
+        state: present
+        update_cache: yes
+
+    - name: Set NAT POSTROUTING rule
+      command: iptables -t nat -A POSTROUTING -o ens18 -j MASQUERADE
+
+    - name: Allow forwarded traffic related and established connections
+      command: iptables -A FORWARD -i ens18 -o ens19 -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+    - name: Allow forwarded traffic from ens19 to ens18
+      command: iptables -A FORWARD -i ens19 -o ens18 -j ACCEPT
+
+    - name: Save iptables rules
+      shell: iptables-save > /etc/iptables/rules.v4
+
+    - name: Ensure iptables-persistent service is enabled and started
+      systemd:
+        name: netfilter-persistent
+        enabled: yes
+        state: started
