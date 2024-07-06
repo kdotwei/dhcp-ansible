@@ -1,0 +1,17 @@
+- name: Install zsh on Debian
+	hosts: debian_hosts
+	become: yes
+
+	tasks:
+		- name: Update apt cache
+		apt:
+			update_cache: yes
+
+		- name: Upgrade all packages to the latest version
+		apt:
+			upgrade: dist
+
+		- name: Ensure zsh is installed
+		apt:
+			name: zsh
+			state: present

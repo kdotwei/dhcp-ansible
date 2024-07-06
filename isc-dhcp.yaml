@@ -1,0 +1,49 @@
+---
+- name: Deploy and Configure ISC DHCP Server
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Upgrade all packages to the latest version
+      apt:
+        upgrade: dist
+
+    - name: Install ISC DHCP Server
+      apt:
+        name: isc-dhcp-server
+        state: present
+
+    - name: Configure DHCP Server
+      template:
+        src: conf.d/dhcpd.conf.j2
+        dest: /etc/dhcp/dhcpd.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Configure ISC-DHCP Default
+      template:
+        src: conf.d/isc-dhcp-server.j2
+        dest: /etc/default/isc-dhcp-server
+        owner: root
+        group: root
+        mode: '0644'
+        
+    - name: System Control
+      template:
+        src: conf.d/sysctl.conf.j2
+        dest: /etc/sysctl.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Configure Network Interfaces
+      template:
+        src: conf.d/interfaces.j2
+        dest: /etc/network/interfaces
+        owner: root
+        group: root
+        mode: '0644'
