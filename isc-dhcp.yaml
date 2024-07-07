@@ -1,6 +1,6 @@
 ---
 - name: Deploy and Configure ISC DHCP Server
-  hosts: localhost
+  hosts: dhcp-hosts
   become: yes
   tasks:
     - name: Update apt cache
@@ -43,13 +43,16 @@
     - name: Configure Network Interfaces
       template:
         src: conf.d/interfaces.j2
-        dest: /etc/network/interfaces
+        dest: /etc/network/interfaces.d/eth0
         owner: root
         group: root
         mode: '0644'
 
+    - name: Apply ip forwarding
+      command: sysctl -p
+
 - name: Setup iptables rules
-  hosts: localhost
+  hosts: dhcp-hosts
   become: yes
   tasks:
     - name: Install iptables-persistent
@@ -59,13 +62,13 @@
         update_cache: yes
 
     - name: Set NAT POSTROUTING rule
-      command: iptables -t nat -A POSTROUTING -o ens18 -j MASQUERADE
+      command: iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE
 
     - name: Allow forwarded traffic related and established connections
-      command: iptables -A FORWARD -i ens18 -o ens19 -m state --state RELATED,ESTABLISHED -j ACCEPT
+      command: iptables -A FORWARD -i eth1 -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
 
-    - name: Allow forwarded traffic from ens19 to ens18
-      command: iptables -A FORWARD -i ens19 -o ens18 -j ACCEPT
+    - name: Allow forwarded traffic from eth0 to wlan0
+      command: iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT
 
     - name: Save iptables rules
       shell: iptables-save > /etc/iptables/rules.v4
@@ -75,3 +78,9 @@
         name: netfilter-persistent
         enabled: yes
         state: started
+
+    - name: Reboot the machine
+      reboot:
+        reboot_timeout: 600
+      ignore_errors: true
+
